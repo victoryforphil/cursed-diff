@@ -38,26 +38,32 @@ export function DiffStats({ diffStats, sourceFileName, targetFileName }) {
               <Badge 
                 size="sm" 
                 color="green" 
-                leftSection={<IconPlus size={10} />}
                 styles={{ root: { textTransform: 'none' } }}
               >
-                {added} added
+                <Group spacing={4}>
+                  <IconPlus size={10} />
+                  <span>{added} added</span>
+                </Group>
               </Badge>
               <Badge 
                 size="sm" 
                 color="red" 
-                leftSection={<IconMinus size={10} />}
                 styles={{ root: { textTransform: 'none' } }}
               >
-                {removed} removed
+                <Group spacing={4}>
+                  <IconMinus size={10} />
+                  <span>{removed} removed</span>
+                </Group>
               </Badge>
               <Badge 
                 size="sm" 
                 color="gray" 
-                leftSection={<IconEqual size={10} />}
                 styles={{ root: { textTransform: 'none' } }}
               >
-                {unchanged} unchanged
+                <Group spacing={4}>
+                  <IconEqual size={10} />
+                  <span>{unchanged} unchanged</span>
+                </Group>
               </Badge>
             </Group>
           </Box>

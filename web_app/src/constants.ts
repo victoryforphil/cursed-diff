@@ -10,7 +10,11 @@ export const QUERY_CONFIG = {
   refetchOnMount: 'always',
 } as const;
 
-// Theme Configuration
+/**
+ * Theme Configuration
+ * 
+ * Color palette and styling constants for the diff viewer application
+ */
 export const THEME_COLORS = {
   background: {
     primary: 'rgba(13, 15, 18, 0.97)',
@@ -23,8 +27,8 @@ export const THEME_COLORS = {
   },
   shadow: {
     primary: '0 8px 32px rgba(0, 0, 0, 0.8)',
-    header: '0 4px 32px rgba(0, 0, 0, 0.8)',
-    navbar: '4px 0 32px rgba(0, 0, 0, 0.8)',
+    header: '0 4px 20px rgba(0, 0, 0, 0.6)',
+    navbar: '4px 0 16px rgba(0, 0, 0, 0.6)',
     glow: '0 0 20px rgba(51, 154, 240, 0.2)',
   },
   text: {
@@ -32,15 +36,35 @@ export const THEME_COLORS = {
     secondary: 'rgba(255, 255, 255, 0.75)',
     accent: '#339af0',
   },
+  diff: {
+    added: {
+      background: 'rgba(38, 151, 97, 0.2)',
+      border: 'rgba(38, 151, 97, 0.6)',
+      text: '#26b571',
+    },
+    removed: {
+      background: 'rgba(201, 42, 42, 0.2)',
+      border: 'rgba(201, 42, 42, 0.6)',
+      text: '#e03131',
+    },
+    unchanged: {
+      background: 'transparent',
+      border: 'transparent',
+    },
+    highlight: {
+      added: 'rgba(38, 151, 97, 0.4)',
+      removed: 'rgba(201, 42, 42, 0.4)',
+    }
+  }
 } as const;
 
 // Layout Configuration
 export const LAYOUT = {
   header: {
-    height: 60,
+    height: 50, // Reduced height for more space
   },
   navbar: {
-    width: 300,
+    width: 280, // Slightly narrower for more content space
     breakpoint: 'sm',
   },
 } as const; 

@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Center, Loader, Text } from '@mantine/core';
+import { Box, Center, Loader, Text, Button, Group, ActionIcon, Tooltip } from '@mantine/core';
 import * as Diff from 'diff';
+import { useComparisonHistory } from '../hooks';
+import { IconStar, IconStarFilled, IconHistory } from '@tabler/icons-react';
 
 // Import our new components
 import { DiffHeader } from '../components/diff-viewer/DiffHeader';
@@ -19,6 +21,7 @@ const getDisplayName = (filePath) => filePath ? filePath.split('/').pop() : 'non
 export function DiffView() {
   const { filePathA, filePathB } = useParams();
   const navigate = useNavigate();
+  const { addComparison, isStarred, toggleStarred } = useComparisonHistory();
   
   // Computed display names
   const sourceFileName = getDisplayName(filePathA);
@@ -30,6 +33,10 @@ export function DiffView() {
   const [error, setError] = useState(null);
   const [diffLines, setDiffLines] = useState({ left: [], right: [], connectors: [] });
   const [diffStats, setDiffStats] = useState({ added: 0, removed: 0, unchanged: 0 });
+  const [comparisonId, setComparisonId] = useState(null);
+  
+  // Ref to ensure we only add to history once - moved outside useEffect
+  const shouldSaveToHistory = useRef(true);
   
   // Get file extension for syntax highlighting
   const getFileExtension = (filePath) => {
@@ -92,7 +99,7 @@ export function DiffView() {
         
         // Remember the line range for later connecting
         const endLeftLineNumber = leftLineNumber - 1;
-        } else {
+      } else {
         // Handle unchanged lines (in both panes)
         lines.forEach(line => {
           left.push({
@@ -110,8 +117,8 @@ export function DiffView() {
           unchangedCount++;
         });
       }
-          });
-          
+    });
+    
     // Create connectors by matching line numbers and types
     let lastLeftRemovedIndex = -1;
     let lastRightAddedIndex = -1;
@@ -289,6 +296,48 @@ export function DiffView() {
     }
   }, [fileA, fileB, loading, processChanges]);
   
+  // Save the comparison to history
+  useEffect(() => {
+    if (!loading && !error && fileA !== null && fileB !== null && shouldSaveToHistory.current) {
+      // Only save finished, successful comparisons once
+      const id = Date.now().toString();
+      setComparisonId(id);
+      
+      // Create a timeout to avoid state updates during render cycle
+      const timer = setTimeout(() => {
+        // Add to history with the generated ID
+        addComparison({
+          id,
+          sourceFile: filePathA,
+          targetFile: filePathB,
+          stats: diffStats
+        });
+        
+        // Mark as saved to prevent duplicate additions
+        shouldSaveToHistory.current = false;
+      }, 0);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [loading, error, fileA, fileB, diffStats, filePathA, filePathB, addComparison]);
+
+  // Handle starring the current comparison
+  const handleToggleStar = () => {
+    if (comparisonId) {
+      toggleStarred({
+        id: comparisonId,
+        sourceFile: filePathA,
+        targetFile: filePathB,
+        stats: diffStats
+      });
+    }
+  };
+
+  // Go to history view
+  const handleViewHistory = () => {
+    navigate('/history');
+  };
+
   // Handler for back button
   const handleBack = () => {
     navigate('/');
@@ -296,6 +345,32 @@ export function DiffView() {
 
   // Check if there is content to display
   const hasContent = diffLines.left.length > 0 || diffLines.right.length > 0;
+  
+  // Add this after your existing header JSX, before the DiffViewer component
+  const historyControls = (
+    <Group position="right" mb="md">
+      {comparisonId && (
+        <Tooltip label={isStarred(comparisonId) ? "Unstar comparison" : "Star comparison"}>
+          <ActionIcon 
+            size="lg"
+            color="yellow"
+            variant={isStarred(comparisonId) ? "filled" : "light"}
+            onClick={handleToggleStar}
+          >
+            {isStarred(comparisonId) ? <IconStarFilled size={20} /> : <IconStar size={20} />}
+          </ActionIcon>
+        </Tooltip>
+      )}
+      
+      <Button 
+        variant="light" 
+        leftIcon={<IconHistory size={16} />}
+        onClick={handleViewHistory}
+      >
+        View History
+      </Button>
+    </Group>
+  );
   
   return (
     <Box p="md" style={{ height: 'calc(100vh - 80px)' }}>
@@ -337,14 +412,17 @@ export function DiffView() {
       
       {/* Main diff view */}
       {!loading && !error && (
-        <DiffViewer 
-          diffLines={diffLines}
-          fileExtension={fileExtension}
-          diffStats={diffStats}
-          sourceFileName={sourceFileName}
-          targetFileName={targetFileName}
-          error={error}
-        />
+        <>
+          {historyControls}
+          <DiffViewer 
+            diffLines={diffLines}
+            fileExtension={fileExtension}
+            diffStats={diffStats}
+            sourceFileName={sourceFileName}
+            targetFileName={targetFileName}
+            error={error}
+          />
+        </>
       )}
     </Box>
   );
