@@ -1,5 +1,5 @@
 import React from 'react';
-import { Paper, Group, Box, Text, Badge } from '@mantine/core';
+import { Paper, Group, Box, Text, Badge, Flex, RingProgress } from '@mantine/core';
 import { IconPlus, IconMinus, IconEqual } from '@tabler/icons-react';
 
 /**
@@ -16,6 +16,11 @@ export function DiffStats({ diffStats, sourceFileName, targetFileName }) {
   const totalChanges = added + removed;
   const totalLines = added + removed + unchanged;
   
+  // Calculate percentages for the ring chart
+  const getPercentage = (value) => {
+    return totalLines === 0 ? 0 : Math.round((value / totalLines) * 100);
+  };
+  
   return (
     <Paper 
       withBorder 
@@ -28,57 +33,65 @@ export function DiffStats({ diffStats, sourceFileName, targetFileName }) {
         marginBottom: '12px' 
       }}
     >
-      <Group position="apart">
-        <Group>
-          <Box>
-            <Text size="xs" weight={500} style={{ marginBottom: '4px' }}>
-              Changes:
+      <Flex align="center" gap="md">
+        {/* Progress Circle */}
+        <RingProgress
+          size={60}
+          thickness={6}
+          roundCaps
+          sections={[
+            { value: getPercentage(added), color: 'green' },
+            { value: getPercentage(removed), color: 'red' },
+            { value: getPercentage(unchanged), color: 'gray' },
+          ]}
+          label={
+            <Text ta="center" fz="xs" fw={700}>
+              {totalLines}
             </Text>
-            <Group spacing="xs">
-              <Badge 
-                size="sm" 
-                color="green" 
-                styles={{ root: { textTransform: 'none' } }}
-              >
-                <Group spacing={4}>
-                  <IconPlus size={10} />
-                  <span>{added} added</span>
-                </Group>
-              </Badge>
-              <Badge 
-                size="sm" 
-                color="red" 
-                styles={{ root: { textTransform: 'none' } }}
-              >
-                <Group spacing={4}>
-                  <IconMinus size={10} />
-                  <span>{removed} removed</span>
-                </Group>
-              </Badge>
-              <Badge 
-                size="sm" 
-                color="gray" 
-                styles={{ root: { textTransform: 'none' } }}
-              >
-                <Group spacing={4}>
-                  <IconEqual size={10} />
-                  <span>{unchanged} unchanged</span>
-                </Group>
-              </Badge>
-            </Group>
-          </Box>
-        </Group>
-        <Box>
-          <Text size="xs" weight={500} style={{ marginBottom: '4px' }}>
-            Files:
-          </Text>
-          <Group>
-            <Text size="xs" color="dimmed">
-              Comparing <strong style={{ fontWeight: 'bold' }}>{sourceFileName}</strong> to <strong style={{ fontWeight: 'bold' }}>{targetFileName}</strong>
-            </Text>
+          }
+        />
+        
+        {/* Stats Badges */}
+        <Box style={{ flex: 1 }}>
+          <Group spacing="xs" mb={4}>
+            <Badge 
+              size="sm" 
+              color="green" 
+              styles={{ root: { textTransform: 'none' } }}
+            >
+              <Group spacing={4}>
+                <IconPlus size={10} />
+                <span>{added} added</span>
+              </Group>
+            </Badge>
+            <Badge 
+              size="sm" 
+              color="red" 
+              styles={{ root: { textTransform: 'none' } }}
+            >
+              <Group spacing={4}>
+                <IconMinus size={10} />
+                <span>{removed} removed</span>
+              </Group>
+            </Badge>
+            <Badge 
+              size="sm" 
+              color="gray" 
+              styles={{ root: { textTransform: 'none' } }}
+            >
+              <Group spacing={4}>
+                <IconEqual size={10} />
+                <span>{unchanged} unchanged</span>
+              </Group>
+            </Badge>
           </Group>
+          
+          {/* File Names */}
+          <Text size="xs" color="dimmed">
+            Comparing <strong style={{ fontWeight: 'bold' }}>{sourceFileName}</strong> to <strong style={{ fontWeight: 'bold' }}>{targetFileName}</strong>
+          </Text>
         </Box>
-      </Group>
+      </Flex>
     </Paper>
   );
 } 
