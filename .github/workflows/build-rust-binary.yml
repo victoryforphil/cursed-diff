@@ -1,0 +1,116 @@
+name: Build and Release Rust Binary
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag (e.g., v0.1.0)'
+        required: true
+        default: ''
+
+env:
+  CARGO_TERM_COLOR: always
+  BINARY_NAME: cli
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: cli
+            asset_name: cli-linux-amd64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: cli.exe
+            asset_name: cli-windows-amd64
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: cli
+            asset_name: cli-macos-x86_64
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: cli
+            asset_name: cli-macos-arm64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install cross-compilation dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-multilib
+
+      - name: Build binary
+        run: |
+          cd cli
+          cargo build --release --target ${{ matrix.target }}
+
+      - name: Package binary (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          cd cli/target/${{ matrix.target }}/release
+          tar -czf ${{ matrix.asset_name }}.tar.gz ${{ matrix.artifact_name }}
+          echo "ASSET=${{ matrix.asset_name }}.tar.gz" >> $GITHUB_ENV
+          echo "ASSET_PATH=cli/target/${{ matrix.target }}/release/${{ matrix.asset_name }}.tar.gz" >> $GITHUB_ENV
+
+      - name: Package binary (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd cli\target\${{ matrix.target }}\release
+          7z a ${{ matrix.asset_name }}.zip ${{ matrix.artifact_name }}
+          echo "ASSET=${{ matrix.asset_name }}.zip" >> $env:GITHUB_ENV
+          echo "ASSET_PATH=cli\target\${{ matrix.target }}\release\${{ matrix.asset_name }}.zip" >> $env:GITHUB_ENV
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ASSET }}
+          path: ${{ env.ASSET_PATH }}
+          retention-days: 1
+
+  create-release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set release tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "RELEASE_TAG=${{ github.event.inputs.release_tag }}" >> $GITHUB_ENV
+          else
+            echo "RELEASE_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          fi
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: Release ${{ env.RELEASE_TAG }}
+          draft: true
+          files: artifacts/**/*
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 

@@ -11,6 +11,7 @@ import "@sinm/react-file-tree/styles.css";
 import '@mantine/core/styles.css'
 import '@mantine/notifications/styles.css'
 import '@mantine/dropzone/styles.css'
+import '@mantine/code-highlight/styles.css';
 import './index.css'
 
 createRoot(document.getElementById('root')).render(

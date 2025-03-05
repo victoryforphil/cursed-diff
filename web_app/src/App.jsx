@@ -2,7 +2,8 @@ import { Routes, Route } from 'react-router-dom'
 import { AppLayout } from './layout/AppLayout'
 import { FileView } from './pages/FileView'
 import { DiffView } from './pages/DiffView'
-import '@mantine/core/styles.css'
+import '@mantine/core/styles.css';
+
 
 function App() {
   return (

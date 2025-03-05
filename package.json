@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@mantine/code-highlight": "^7.17.1",
+    "@mantine/tiptap": "^7.17.1",
+    "@tiptap/extension-link": "^2.11.5",
+    "@tiptap/react": "^2.11.5",
+    "@tiptap/starter-kit": "^2.11.5"
+  }
+}

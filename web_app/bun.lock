@@ -5,12 +5,15 @@
       "name": "web_app",
       "dependencies": {
         "@gfazioli/mantine-split-pane": "^1.1.4",
-        "@mantine/core": "^7.17.1",
+        "@mantine/code-highlight": "^7.17.1",
+        "@mantine/core": "7",
         "@mantine/dropzone": "^7.17.1",
+        "@mantine/hooks": "7",
         "@mantine/notifications": "^7.17.1",
         "@sinm/react-file-tree": "^1.1.1",
         "@tabler/icons-react": "^3.31.0",
         "@types/lodash": "^4.17.16",
+        "diff": "^7.0.0",
         "lodash": "^4.17.21",
         "react": "^19.0.0",
         "react-diff-viewer": "^3.1.1",
@@ -186,6 +189,8 @@
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.25", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ=="],
 
+    "@mantine/code-highlight": ["@mantine/code-highlight@7.17.1", "", { "dependencies": { "clsx": "^2.1.1", "highlight.js": "^11.10.0" }, "peerDependencies": { "@mantine/core": "7.17.1", "@mantine/hooks": "7.17.1", "react": "^18.x || ^19.x", "react-dom": "^18.x || ^19.x" } }, "sha512-fNbCzLwj+QWC0OehaJvwArs+hXHeK/Gmanc2Y1IUjGikEUMUPTxXIXppgSta6UusqXNcjKhsfffsmDMFaxXwhg=="],
+
     "@mantine/core": ["@mantine/core@7.17.1", "", { "dependencies": { "@floating-ui/react": "^0.26.28", "clsx": "^2.1.1", "react-number-format": "^5.4.3", "react-remove-scroll": "^2.6.2", "react-textarea-autosize": "8.5.6", "type-fest": "^4.27.0" }, "peerDependencies": { "@mantine/hooks": "7.17.1", "react": "^18.x || ^19.x", "react-dom": "^18.x || ^19.x" } }, "sha512-V8O3Ftq4la4I4wNDkTfH4Slkt/pCEU32pTE/DkO46zua0VFxfOAJeLjaol0s11//T+bXx82DtjMsd9APWPuFhA=="],
 
     "@mantine/dropzone": ["@mantine/dropzone@7.17.1", "", { "dependencies": { "react-dropzone-esm": "15.2.0" }, "peerDependencies": { "@mantine/core": "7.17.1", "@mantine/hooks": "7.17.1", "react": "^18.x || ^19.x", "react-dom": "^18.x || ^19.x" } }, "sha512-bMn2f64IUIntEqGde5aPIa9Lp7AB1ONfuxYQwTOC3Gbr6xl77ShuxOAdPJSatx0ncGefb8Hd40gnWGouRzajGA=="],
@@ -324,7 +329,7 @@
 
     "detect-node-es": ["detect-node-es@1.1.0", "", {}, "sha512-ypdmJU/TbBby2Dxibuv7ZLW3Bs1QEmM7nHjEANfohJLvE0XVujisn1qPJcZxg+qDucsr+bP6fLD1rPS3AhJ7EQ=="],
 
-    "diff": ["diff@4.0.2", "", {}, "sha512-58lmxKSA4BNyLz+HHMUzlOEpg09FV+ev6ZMe3vJihgdxzgcwZ8VoEEPmALCZG9LmqfVoNMMKpttIYTVG6uDY7A=="],
+    "diff": ["diff@7.0.0", "", {}, "sha512-PJWHUb1RFevKCwaFA9RlG5tCd+FO5iRh9A8HEtkmBH2Li03iJriB6m6JIN4rGz3K3JLawI7/veA1xzRKP6ISBw=="],
 
     "dom-helpers": ["dom-helpers@5.2.1", "", { "dependencies": { "@babel/runtime": "^7.8.7", "csstype": "^3.0.2" } }, "sha512-nRCa7CK3VTrM2NmGkIy4cbK7IZlgBE/PYMn55rrXefr5xXDP0LdtfPnblFDoVdcAfslJ7or6iqAUnx0CCGIWQA=="],
 
@@ -391,6 +396,8 @@
     "has-flag": ["has-flag@4.0.0", "", {}, "sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ=="],
 
     "hasown": ["hasown@2.0.2", "", { "dependencies": { "function-bind": "^1.1.2" } }, "sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ=="],
+
+    "highlight.js": ["highlight.js@11.11.1", "", {}, "sha512-Xwwo44whKBVCYoliBQwaPvtd/2tYFkRQtXDWj1nackaV2JPXx3L0+Jvd8/qCJ2p+ML0/XVkJ2q+Mr+UVdpJK5w=="],
 
     "ignore": ["ignore@5.3.2", "", {}, "sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g=="],
 
@@ -591,6 +598,8 @@
     "babel-plugin-emotion/convert-source-map": ["convert-source-map@1.9.0", "", {}, "sha512-ASFBup0Mz1uyiIjANan1jzLQami9z1PoYSZCiiYW2FczPbenXc45FZdBZLzOT+r6+iciuEModtmCti+hjaAk0A=="],
 
     "babel-plugin-emotion/escape-string-regexp": ["escape-string-regexp@1.0.5", "", {}, "sha512-vbRorB5FUQWvla16U8R/qgaFIya2qGzwDrNmCZuYKrbdSUMG6I1ZCGQRefkRVhuOkIGVne7BQ35DSfo1qvJqFg=="],
+
+    "react-diff-viewer/diff": ["diff@4.0.2", "", {}, "sha512-58lmxKSA4BNyLz+HHMUzlOEpg09FV+ev6ZMe3vJihgdxzgcwZ8VoEEPmALCZG9LmqfVoNMMKpttIYTVG6uDY7A=="],
 
     "react-virtualized/clsx": ["clsx@1.2.1", "", {}, "sha512-EcR6r5a8bj6pu3ycsa/E/cKVGuTgZJZdsyUYHOksG/UHIiKfjxzRxYJpyVBwYaQeOvghal9fcc4PidlgzugAQg=="],
   }
