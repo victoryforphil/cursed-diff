@@ -29,6 +29,7 @@ import {
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useComparisonHistory } from '../hooks'
 import { useState, useEffect } from 'react'
+import { getFilesA, getFilesB } from '../utils/api'
 
 /**
  * NavbarLink - Navigation link component for sidebar
@@ -335,19 +336,14 @@ export function Sidebar() {
       try {
         setLoading(true);
         
-        const [responseA, responseB] = await Promise.all([
-          fetch('http://localhost:3000/api/files/a'),
-          fetch('http://localhost:3000/api/files/b')
+        const [filesA, filesB] = await Promise.all([
+          getFilesA(),
+          getFilesB()
         ]);
-
-        if (responseA.ok && responseB.ok) {
-          const filesA = await responseA.json();
-          const filesB = await responseB.json();
-          
-          if (Array.isArray(filesA) && Array.isArray(filesB)) {
-            setSourceFiles(filesA);
-            setTargetFiles(filesB);
-          }
+        
+        if (Array.isArray(filesA) && Array.isArray(filesB)) {
+          setSourceFiles(filesA);
+          setTargetFiles(filesB);
         }
       } catch (error) {
         console.error('Error fetching files:', error);

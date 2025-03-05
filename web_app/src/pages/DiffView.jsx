@@ -4,6 +4,7 @@ import { Box, Center, Loader, Text, Button, Group, ActionIcon, Tooltip } from '@
 import * as Diff from 'diff';
 import { useComparisonHistory } from '../hooks';
 import { IconStar, IconStarFilled, IconHistory } from '@tabler/icons-react';
+import { getFilesA, getFilesB, getFileAContents, getFileBContents } from '../utils/api';
 
 // Import our new components
 import { DiffHeader } from '../components/diff-viewer/DiffHeader';
@@ -186,18 +187,9 @@ export function DiffView() {
       
       try {
         // Step 1: Fetch the file listings from both directories
-        const [responseFilesA, responseFilesB] = await Promise.all([
-          fetch('http://localhost:3000/api/files/a'),
-          fetch('http://localhost:3000/api/files/b')
-        ]);
-        
-        if (!responseFilesA.ok || !responseFilesB.ok) {
-          throw new Error('Failed to fetch file listings');
-        }
-        
         const [filesA, filesB] = await Promise.all([
-          responseFilesA.json(),
-          responseFilesB.json()
+          getFilesA(),
+          getFilesB()
         ]);
         
         // Step 2: Find the indices of the files we want based on path
@@ -218,17 +210,11 @@ export function DiffView() {
         let dataB = null;
         
         if (fileAIndex !== null) {
-          const responseA = await fetch(`http://localhost:3000/api/files/a/${fileAIndex}/contents`);
-          if (responseA.ok) {
-            dataA = await responseA.json();
-          }
+          dataA = await getFileAContents(fileAIndex);
         }
         
         if (fileBIndex !== null) {
-          const responseB = await fetch(`http://localhost:3000/api/files/b/${fileBIndex}/contents`);
-          if (responseB.ok) {
-            dataB = await responseB.json();
-          }
+          dataB = await getFileBContents(fileBIndex);
         }
         
         // Update state with the fetched files

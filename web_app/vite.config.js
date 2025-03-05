@@ -16,8 +16,19 @@ export default defineConfig({
       usePolling: false,
       interval: 1000,
     },
+    // Configure proxy to API when in development mode
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+    },
   },
   build: {
+    // Use relative paths for assets
+    assetsDir: 'assets',
+    // Use relative paths for all asset references
+    base: './',
     // Optimize chunk size for better performance
     chunkSizeWarningLimit: 1000,
     rollupOptions: {

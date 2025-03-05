@@ -10,8 +10,14 @@ use axum::{
     extract::{State, Path},
     response::Json,
     http::{StatusCode, HeaderValue, Method},
+    body::Body,
 };
-use tower_http::cors::{CorsLayer, Any};
+use tower_http::{
+    cors::{CorsLayer, Any},
+    services::ServeDir,
+    trace::TraceLayer,
+    compression::CompressionLayer,
+};
 use serde::Serialize;
 use crate::file::ComparsionResult;
 
@@ -33,6 +39,10 @@ struct Args {
     /// Port to use for the web server
     #[arg(short, long, default_value_t = 3000)]
     port: u16,
+    
+    /// Path to static web assets
+    #[arg(short = 's', long, default_value = "static")]
+    static_dir: PathBuf,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
@@ -78,23 +88,38 @@ async fn main() {
     
     match args.mode {
         ViewerMode::Web => {
+            // Ensure static dir exists
+            if !args.static_dir.exists() {
+                println!("Static directory not found at {:?}", args.static_dir);
+                println!("Please run 'cd web_app && bun run build:cli' first");
+                std::process::exit(1);
+            }
+            
             // Set up CORS
             let cors = CorsLayer::new()
                 .allow_origin("http://localhost:5173".parse::<HeaderValue>().unwrap())
                 .allow_methods([Method::GET])
                 .allow_headers(Any);
                 
-            // Define routes for web viewer
-            let app = Router::new()
-                .route("/api/files/a", get(get_files_a))
-                .route("/api/files/b", get(get_files_b))
-                .route("/api/files/a/{file_index}/contents", get(get_file_a_contents))
-                .route("/api/files/b/{file_index}/contents", get(get_file_b_contents))
-                .layer(cors)
+            // API routes
+            let api_routes = Router::new()
+                .route("/files/a", get(get_files_a))
+                .route("/files/b", get(get_files_b))
+                .route("/files/a/{file_index}/contents", get(get_file_a_contents))
+                .route("/files/b/{file_index}/contents", get(get_file_b_contents))
                 .with_state(shared_state);
+            
+            // Static file serving + API routes
+            let app = Router::new()
+                .nest("/api", api_routes)
+                .layer(cors)
+                .layer(CompressionLayer::new())
+                .layer(TraceLayer::new_for_http())
+                .fallback_service(ServeDir::new(args.static_dir.clone()).append_index_html_on_directories(true));
 
             let addr = std::net::SocketAddr::from(([127, 0, 0, 1], args.port));
-            println!("Starting web server on http://{}", addr);
+            println!("Starting server on http://{}", addr);
+            println!("Serving static files from {:?}", args.static_dir);
             
             let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
             axum::serve(listener, app).await.unwrap();

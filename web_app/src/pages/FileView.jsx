@@ -28,6 +28,7 @@ import "@sinm/react-file-tree/icons.css";
 import "@sinm/react-file-tree/styles.css";
 import { THEME_COLORS } from '../constants.ts';
 import _ from 'lodash';
+import { getFilesA, getFilesB } from '../utils/api';
 
 // Custom styles for file tree - Applied directly in head to ensure they're loaded
 const fileTreeStyles = `
@@ -282,17 +283,10 @@ export function FileView() {
       setLoading(true);
       setError(null);
       
-      const [responseA, responseB] = await Promise.all([
-        fetch('http://localhost:3000/api/files/a'),
-        fetch('http://localhost:3000/api/files/b')
+      const [filesA, filesB] = await Promise.all([
+        getFilesA(),
+        getFilesB()
       ]);
-
-      if (!responseA.ok || !responseB.ok) {
-        throw new Error('Failed to fetch data from API');
-      }
-
-      const filesA = await responseA.json();
-      const filesB = await responseB.json();
 
       if (!Array.isArray(filesA) || !Array.isArray(filesB)) {
         throw new Error('Invalid response format from API');
