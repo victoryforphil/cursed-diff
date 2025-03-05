@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@mantine/core": "^7.17.1",
+    "@mantine/dropzone": "^7.17.1",
+    "@mantine/form": "^7.17.1",
+    "@mantine/hooks": "^7.17.1",
+    "@mantine/notifications": "^7.17.1",
+    "@mantine/styles": "^6.0.22"
+  }
+}
