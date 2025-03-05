@@ -53,12 +53,17 @@ export function DiffView() {
   // Refs for ScrollArea components
   const leftScrollRef = useRef(null);
   const rightScrollRef = useRef(null);
+  const connectorScrollRef = useRef(null);
   
   // State to track if sync scroll is working
   const [syncScrollActive, setSyncScrollActive] = useState(false);
   
   // Ref to track which side is currently being scrolled
-  const isScrollingRef = useRef({ left: false, right: false });
+  const isScrollingRef = useRef({
+    left: false,
+    right: false,
+    connector: false
+  });
   
   // Get file extension for syntax highlighting
   const getFileExtension = (filePath) => {
@@ -217,8 +222,9 @@ export function DiffView() {
     setTimeout(() => {
       const leftScrollable = getScrollableElement(leftScrollRef);
       const rightScrollable = getScrollableElement(rightScrollRef);
+      const connectorScrollable = getScrollableElement(connectorScrollRef);
       
-      if (!leftScrollable || !rightScrollable) {
+      if (!leftScrollable || !rightScrollable || !connectorScrollable) {
         console.log('Scrollable elements not found, will retry');
         setSyncScrollActive(false);
         return null;
@@ -226,12 +232,13 @@ export function DiffView() {
       
       console.log('Scrollable elements found:', { 
         left: leftScrollable.className || 'element', 
-        right: rightScrollable.className || 'element'
+        right: rightScrollable.className || 'element',
+        connector: connectorScrollable.className || 'element'
       });
       
-      // Function to synchronize left scroll to right scroll
+      // Function to synchronize left scroll to right and connector scroll
       const syncLeftToRight = () => {
-        if (isScrollingRef.current.right) return;
+        if (isScrollingRef.current.right || isScrollingRef.current.connector) return;
         
         isScrollingRef.current.left = true;
         
@@ -253,15 +260,24 @@ export function DiffView() {
           rightScrollable.scrollTop = scrollPercentage * scrollableHeightRight;
         }
         
+        // Apply the same percentage to the connector
+        const connectorScrollHeight = connectorScrollable.scrollHeight;
+        const connectorClientHeight = connectorScrollable.clientHeight;
+        const scrollableHeightConnector = connectorScrollHeight - connectorClientHeight;
+        
+        if (scrollableHeightConnector > 0) {
+          connectorScrollable.scrollTop = scrollPercentage * scrollableHeightConnector;
+        }
+        
         // Reset the scrolling flag after a short delay
         setTimeout(() => {
           isScrollingRef.current.left = false;
         }, 50);
       };
       
-      // Function to synchronize right scroll to left scroll
+      // Function to synchronize right scroll to left and connector scroll
       const syncRightToLeft = () => {
-        if (isScrollingRef.current.left) return;
+        if (isScrollingRef.current.left || isScrollingRef.current.connector) return;
         
         isScrollingRef.current.right = true;
         
@@ -283,15 +299,64 @@ export function DiffView() {
           leftScrollable.scrollTop = scrollPercentage * scrollableHeightLeft;
         }
         
+        // Apply the same percentage to the connector
+        const connectorScrollHeight = connectorScrollable.scrollHeight;
+        const connectorClientHeight = connectorScrollable.clientHeight;
+        const scrollableHeightConnector = connectorScrollHeight - connectorClientHeight;
+        
+        if (scrollableHeightConnector > 0) {
+          connectorScrollable.scrollTop = scrollPercentage * scrollableHeightConnector;
+        }
+        
         // Reset the scrolling flag after a short delay
         setTimeout(() => {
           isScrollingRef.current.right = false;
         }, 50);
       };
       
+      // Function to synchronize connector scroll to left and right scroll
+      const syncConnectorToSides = () => {
+        if (isScrollingRef.current.left || isScrollingRef.current.right) return;
+        
+        isScrollingRef.current.connector = true;
+        
+        // Calculate the scroll percentage
+        const connectorScrollHeight = connectorScrollable.scrollHeight;
+        const connectorClientHeight = connectorScrollable.clientHeight;
+        const scrollableHeightConnector = connectorScrollHeight - connectorClientHeight;
+        
+        if (scrollableHeightConnector <= 0) return;
+        
+        const scrollPercentage = connectorScrollable.scrollTop / scrollableHeightConnector;
+        
+        // Apply the same percentage to the left side
+        const leftScrollHeight = leftScrollable.scrollHeight;
+        const leftClientHeight = leftScrollable.clientHeight;
+        const scrollableHeightLeft = leftScrollHeight - leftClientHeight;
+        
+        if (scrollableHeightLeft > 0) {
+          leftScrollable.scrollTop = scrollPercentage * scrollableHeightLeft;
+        }
+        
+        // Apply the same percentage to the right side
+        const rightScrollHeight = rightScrollable.scrollHeight;
+        const rightClientHeight = rightScrollable.clientHeight;
+        const scrollableHeightRight = rightScrollHeight - rightClientHeight;
+        
+        if (scrollableHeightRight > 0) {
+          rightScrollable.scrollTop = scrollPercentage * scrollableHeightRight;
+        }
+        
+        // Reset the scrolling flag after a short delay
+        setTimeout(() => {
+          isScrollingRef.current.connector = false;
+        }, 50);
+      };
+      
       // Add event listeners for scroll events
       leftScrollable.addEventListener('scroll', syncLeftToRight);
       rightScrollable.addEventListener('scroll', syncRightToLeft);
+      connectorScrollable.addEventListener('scroll', syncConnectorToSides);
       
       // Mark sync as active
       setSyncScrollActive(true);
@@ -300,6 +365,7 @@ export function DiffView() {
       return () => {
         leftScrollable.removeEventListener('scroll', syncLeftToRight);
         rightScrollable.removeEventListener('scroll', syncRightToLeft);
+        connectorScrollable.removeEventListener('scroll', syncConnectorToSides);
         setSyncScrollActive(false);
       };
     }, 200); // Small delay to ensure DOM is ready
@@ -615,7 +681,7 @@ export function DiffView() {
     }
   }, [fileA, fileB, loading, processChanges]);
   
-  // Render connector lines between matching changes
+  // Create a ScrollArea for the connectors that will be synchronized with the content panes
   const renderConnectors = () => {
     // Temporarily use div until we have proper synced scroll metrics
     if (!diffLines.left.length || !diffLines.right.length) {
@@ -633,21 +699,54 @@ export function DiffView() {
     // Get all pairs that need connectors
     const connectorPairs = diffLines.connectors || [];
     
-    // Only render connectors for additions and removals (not unchanged)
-    // This reduces visual clutter
-    const visibleConnectors = connectorPairs.filter(
-      conn => conn.type === 'added' || conn.type === 'removed'
+    // Group connectors by type and proximity to create blobs instead of individual lines
+    const groupedConnectors = [];
+    let currentGroup = null;
+    
+    // Only process additions and removals (not unchanged) to reduce visual clutter
+    const relevantConnectors = connectorPairs.filter(
+      conn => (conn.type === 'added' || conn.type === 'removed') && 
+              conn.leftLine !== undefined && 
+              conn.rightLine !== undefined
     );
     
+    // Group connectors that are close to each other (within 3 lines)
+    relevantConnectors.forEach((conn, index) => {
+      if (!currentGroup || 
+          conn.type !== currentGroup.type || 
+          index > 0 && (
+            Math.abs(conn.leftLine - relevantConnectors[index-1].leftLine) > 3 ||
+            Math.abs(conn.rightLine - relevantConnectors[index-1].rightLine) > 3
+          )) {
+        // Start a new group
+        currentGroup = {
+          type: conn.type,
+          connectors: [conn],
+          minLeftLine: conn.leftLine,
+          maxLeftLine: conn.leftLine,
+          minRightLine: conn.rightLine,
+          maxRightLine: conn.rightLine
+        };
+        groupedConnectors.push(currentGroup);
+      } else {
+        // Add to existing group
+        currentGroup.connectors.push(conn);
+        currentGroup.minLeftLine = Math.min(currentGroup.minLeftLine, conn.leftLine);
+        currentGroup.maxLeftLine = Math.max(currentGroup.maxLeftLine, conn.leftLine);
+        currentGroup.minRightLine = Math.min(currentGroup.minRightLine, conn.rightLine);
+        currentGroup.maxRightLine = Math.max(currentGroup.maxRightLine, conn.rightLine);
+      }
+    });
+
+    // Return a special version of ScrollArea for the connectors
     return (
       <Box style={{ 
         position: 'relative', 
         height: '100%', 
-        width: '100%', 
         backgroundColor: '#1a1b1e',
         borderLeft: '1px solid #2c2e33',
         borderRight: '1px solid #2c2e33',
-        overflow: 'hidden' // Ensure connectors don't overflow
+        overflow: 'hidden'
       }}>
         {/* Color indicators to show overall changes */}
         <Box style={{ 
@@ -700,93 +799,70 @@ export function DiffView() {
           )}
         </Box>
         
-        {/* Connector lines */}
+        {/* This div acts as placeholder content to match the height of the longest pane */}
         <div style={{ 
-          position: 'absolute', 
-          top: 0, 
-          left: 0, 
-          width: '100%', 
-          height: '100%', 
-          pointerEvents: 'none',
-          overflow: 'hidden'
+          height: Math.max(
+            diffLines.left.length * LINE_HEIGHT,
+            diffLines.right.length * LINE_HEIGHT
+          ),
+          position: 'relative'
         }}>
-          {visibleConnectors.map((connector, index) => {
-            // Skip invalid connectors
-            if (connector.leftLine === undefined || connector.rightLine === undefined) {
-              return null;
-            }
-            
-            const startY = connector.leftLine * LINE_HEIGHT + LINE_HEIGHT / 2;
-            const endY = connector.rightLine * LINE_HEIGHT + LINE_HEIGHT / 2;
+          {/* Connector blobs */}
+          {groupedConnectors.map((group, index) => {
+            const startY1 = group.minLeftLine * LINE_HEIGHT;
+            const startY2 = group.maxLeftLine * LINE_HEIGHT + LINE_HEIGHT;
+            const endY1 = group.minRightLine * LINE_HEIGHT;
+            const endY2 = group.maxRightLine * LINE_HEIGHT + LINE_HEIGHT;
             
             // Use different styles for different types of connectors
-            let strokeColor, strokeWidth, strokeOpacity, strokeDasharray;
+            let fillColor, strokeColor, strokeOpacity;
             
-            if (connector.type === 'added') {
+            if (group.type === 'added') {
+              fillColor = 'rgba(46, 160, 67, 0.3)';
               strokeColor = '#2ea043';
-              strokeWidth = 2;
-              strokeOpacity = 0.7;
-              strokeDasharray = connector.dashed ? "3 3" : "";
-            } else if (connector.type === 'removed') {
-              strokeColor = '#f85149';
-              strokeWidth = 2;
-              strokeOpacity = 0.7;
-              strokeDasharray = connector.dashed ? "3 3" : "";
+              strokeOpacity = 0.9;
             } else {
-              strokeColor = '#39a0ed';
-              strokeWidth = 1;
-              strokeOpacity = 0.3;
-              strokeDasharray = "";
+              fillColor = 'rgba(248, 81, 73, 0.3)';
+              strokeColor = '#f85149';
+              strokeOpacity = 0.9;
             }
             
-            // Only draw connector if it's visible (handles large files better)
-            if (startY < -100 || startY > 3000 || endY < -100 || endY > 3000) {
-              return null;
-            }
+            // Calculate top position for the SVG
+            const topY = Math.min(startY1, endY1);
+            const height = Math.max(startY2, endY2) - topY;
+            
+            // Adjust calculations to make the blobs more cohesive
+            // Add some padding to make the blobs larger than the exact lines
+            const padding = 3;
+            const adjustedStartY1 = startY1 - padding;
+            const adjustedStartY2 = startY2 + padding;
+            const adjustedEndY1 = endY1 - padding;
+            const adjustedEndY2 = endY2 + padding;
             
             return (
-              <React.Fragment key={index}>
-                {/* Connector line */}
-                <svg width="50" height={Math.abs(endY - startY) + LINE_HEIGHT} 
-                  style={{ 
-                    position: 'absolute', 
-                    top: Math.min(startY, endY) - LINE_HEIGHT/2,
-                    left: 0,
-                    overflow: 'visible'
-                  }}>
-                  <path
-                    d={`M 0,${startY - Math.min(startY, endY) + LINE_HEIGHT/2} C 20,${startY - Math.min(startY, endY) + LINE_HEIGHT/2} 30,${endY - Math.min(startY, endY) + LINE_HEIGHT/2} 50,${endY - Math.min(startY, endY) + LINE_HEIGHT/2}`}
-                    fill="none"
-                    stroke={strokeColor}
-                    strokeWidth={strokeWidth}
-                    strokeOpacity={strokeOpacity}
-                    strokeDasharray={strokeDasharray}
-                  />
-                </svg>
-                
-                {/* Markers at endpoints */}
-                <div style={{
-                  position: 'absolute',
+              <svg key={index} width="50" height={height + (padding * 2)} 
+                style={{ 
+                  position: 'absolute', 
+                  top: topY - padding,
                   left: 0,
-                  top: startY - 3,
-                  width: 6,
-                  height: 6,
-                  borderRadius: '50%',
-                  backgroundColor: strokeColor,
-                  opacity: strokeOpacity
-                }} />
-                
-                <div style={{
-                  position: 'absolute',
-                  right: 0,
-                  top: endY - 3,
-                  width: 6,
-                  height: 6,
-                  borderRadius: '50%',
-                  backgroundColor: strokeColor,
-                  opacity: strokeOpacity
-                }} />
-              </React.Fragment>
+                  overflow: 'visible'
+                }}>
+                {/* Generate blob shape with smoother curve */}
+                <path
+                  d={`
+                    M 0,${adjustedStartY1 - (topY - padding)}
+                    L 0,${adjustedStartY2 - (topY - padding)}
+                    C 25,${adjustedStartY2 - (topY - padding)} 25,${adjustedEndY2 - (topY - padding)} 50,${adjustedEndY2 - (topY - padding)}
+                    L 50,${adjustedEndY1 - (topY - padding)}
+                    C 25,${adjustedEndY1 - (topY - padding)} 25,${adjustedStartY1 - (topY - padding)} 0,${adjustedStartY1 - (topY - padding)}
+                    Z
+                  `}
+                  fill={fillColor}
+                  stroke={strokeColor}
+                  strokeWidth={1.5}
+                  strokeOpacity={strokeOpacity}
+                />
+              </svg>
             );
           })}
         </div>
@@ -980,7 +1056,19 @@ export function DiffView() {
               </ScrollArea>
               
               {/* Center connector pane */}
-              {renderConnectors()}
+              <ScrollArea 
+                style={{ 
+                  height: '100%', 
+                  backgroundColor: '#1a1b1e',
+                  overflow: 'hidden'
+                }}
+                scrollbarSize={0}
+                type="auto"
+                id="connector-pane"
+                ref={connectorScrollRef}
+              >
+                {renderConnectors()}
+              </ScrollArea>
               
               {/* Right pane */}
               <ScrollArea 
